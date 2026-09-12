@@ -40,18 +40,30 @@ router.post('/announcement/create', (req, res) => {
     emailUserCreated: bodyData.emailUserCreated || req.body.emailUserCreated || 'user@huellassalud.com',
     roleUserCreated: bodyData.roleUserCreated || req.body.roleUserCreated || 'CLIENTE',
     imagePath: null,
-    imageDataUrl: null,
-    imageUrl: null
+    imageDataUrl: bodyData.imageBase64 || bodyData.imageDataUrl || null,
+    imageUrl: null,
+    updatedAt: Date.now()
   };
   seedData.announcements.push(newAnn);
-  console.log('[Create Announcement] Created new announcement:', newAnn.idAnnouncement);
+  console.log('[Create Announcement] Created:', newAnn.idAnnouncement, 'Has Image:', !!newAnn.imageDataUrl);
   res.status(201).json({ status: 'success', data: newAnn });
 });
 
 router.put('/announcement/:id', (req, res) => {
   const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
   if (idx === -1) return res.status(404).json({ message: 'Anuncio no encontrado' });
-  seedData.announcements[idx] = { ...seedData.announcements[idx], ...req.body };
+  
+  const bodyData = req.body.data || req.body;
+  
+  seedData.announcements[idx] = { 
+    ...seedData.announcements[idx], 
+    ...bodyData,
+    updatedAt: Date.now()
+  };
+  if (bodyData.imageBase64) {
+    seedData.announcements[idx].imageDataUrl = bodyData.imageBase64;
+  }
+  
   res.json({ message: 'Anuncio actualizado exitosamente', data: seedData.announcements[idx] });
 });
 
@@ -62,11 +74,10 @@ router.delete('/announcement/:id', (req, res) => {
   res.json({ message: 'Anuncio eliminado exitosamente', data: deleted[0] });
 });
 
-// Guardar imagen subida (Soporta /Announcement/:id y /announcement/:id)
+// Guardar imagen subida (Multipart/form-data)
 const handleUploadImage = (req, res) => {
   const annId = req.params.id.toLowerCase();
   const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
-  console.log(`[Upload Image] Target announcement ID: ${req.params.id}, Found: ${!!ann}, File: ${!!req.file}`);
 
   if (req.file) {
     let base64Data = null;
@@ -81,14 +92,13 @@ const handleUploadImage = (req, res) => {
     if (ann) {
       ann.imagePath = req.file.path;
       if (base64Data) ann.imageDataUrl = base64Data;
-      console.log(`[Upload Image] Successfully attached image to ${ann.idAnnouncement}`);
+      ann.updatedAt = Date.now();
     }
 
     return res.json({
       status: 'success',
       message: 'Imagen subida con éxito',
-      file: req.file,
-      imageUrl: `/internal/avatar-user/Announcement/${req.params.id}`
+      file: req.file
     });
   }
 
@@ -98,14 +108,14 @@ const handleUploadImage = (req, res) => {
 router.post('/avatar-user/announcement/:id', upload.single('fileUpload'), handleUploadImage);
 router.post('/avatar-user/Announcement/:id', upload.single('fileUpload'), handleUploadImage);
 
-// Servir la imagen del anuncio (Soporta /Announcement/:id y /announcement/:id)
+// Servir imagen del anuncio
 const handleGetAnnouncementImage = (req, res) => {
   const annId = req.params.id.toLowerCase();
   const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
 
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
-  // 1. Si el anuncio tiene imagen en Base64 en memoria (súper confiable)
+  // 1. Si el anuncio tiene imagen en Base64 en memoria
   if (ann && ann.imageDataUrl) {
     const matches = ann.imageDataUrl.match(/^data:(.+);base64,(.+)$/);
     if (matches) {
