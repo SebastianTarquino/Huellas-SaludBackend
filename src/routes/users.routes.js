@@ -54,10 +54,30 @@ router.post('/user/create', (req, res) => {
 });
 
 router.put('/user/:id', (req, res) => {
-  const idx = seedData.users.findIndex(u => u.id == req.params.id);
+  const idx = seedData.users.findIndex(u => u.id == req.params.id || u.documentNumber == req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Usuario no encontrado' });
-  seedData.users[idx] = { ...seedData.users[idx], ...req.body };
-  res.json({ message: 'Usuario actualizado exitosamente', data: seedData.users[idx] });
+
+  // Si el usuario envio data anidada (ej: copiar respuesta previa en Swagger)
+  const bodyData = (req.body.data && typeof req.body.data === 'object' && !Array.isArray(req.body.data))
+    ? req.body.data
+    : req.body;
+
+  const currentUser = seedData.users[idx];
+
+  const updatedUser = {
+    id: currentUser.id,
+    documentNumber: bodyData.documentNumber ?? bodyData.document ?? currentUser.documentNumber,
+    email: bodyData.email ?? currentUser.email,
+    name: bodyData.name ?? currentUser.name,
+    lastName: bodyData.lastName ?? bodyData.lasName ?? currentUser.lastName,
+    role: bodyData.role ?? currentUser.role,
+    password: bodyData.password ?? currentUser.password,
+    phone: bodyData.phone ?? currentUser.phone || '',
+    address: bodyData.address ?? currentUser.address || ''
+  };
+
+  seedData.users[idx] = updatedUser;
+  res.json({ message: 'Usuario actualizado exitosamente', data: updatedUser });
 });
 
 router.delete('/user/:id', (req, res) => {
