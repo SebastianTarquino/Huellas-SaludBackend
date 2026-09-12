@@ -1,4 +1,3 @@
-
 const express = require('express');
 const seedData = require('../data/seedData');
 const router = express.Router();
@@ -24,17 +23,34 @@ router.get('/user/:id', (req, res) => {
 });
 
 router.post('/user/create', (req, res) => {
+  const bodyData = req.body.data || req.body;
+  const email = bodyData.email || '';
+  const documentNumber = bodyData.documentNumber || bodyData.document || '';
+
+  if (!email || !documentNumber) {
+    return res.status(400).json({ message: 'El correo y el número de documento son obligatorios' });
+  }
+
+  // Verificar si ya existe
+  const existing = seedData.users.find(u => u.email === email || u.documentNumber === documentNumber);
+  if (existing) {
+    return res.status(400).json({ message: 'Ya existe un usuario registrado con este correo o documento' });
+  }
+
   const newUser = {
     id: seedData.users.length + 1,
-    documentNumber: req.body.documentNumber || req.body.data?.documentNumber || '00000000',
-    email: req.body.email || req.body.data?.email || 'nuevo@usuario.com',
-    name: req.body.name || req.body.data?.name || 'Nuevo',
-    lastName: req.body.lastName || req.body.data?.lastName || 'Usuario',
-    role: req.body.role || req.body.data?.role || 'CLIENTE',
-    password: req.body.password || req.body.data?.password || 'password123'
+    documentNumber: documentNumber,
+    email: email,
+    name: bodyData.name || 'Nuevo',
+    lastName: bodyData.lastName || bodyData.lasName || 'Cliente',
+    role: 'CLIENTE', // SIEMPRE ROL CLIENTE PARA REGISTROS PÚBLICOS
+    password: bodyData.password || 'password123',
+    phone: bodyData.phone || '',
+    address: bodyData.address || ''
   };
+
   seedData.users.push(newUser);
-  res.status(201).json({ message: 'Usuario creado exitosamente', data: newUser });
+  res.status(201).json({ status: 'success', message: 'Usuario cliente creado exitosamente', data: newUser });
 });
 
 router.put('/user/:id', (req, res) => {
