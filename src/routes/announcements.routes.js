@@ -36,9 +36,9 @@ router.post('/announcement/create', (req, res) => {
     description: bodyData.description || 'Sin descripción',
     cellPhone: bodyData.cellPhone || '',
     status: true,
-    nameUserCreated: 'Usuario',
-    emailUserCreated: 'user@huellassalud.com',
-    roleUserCreated: 'CLIENTE'
+    nameUserCreated: bodyData.nameUserCreated || req.body.nameUserCreated || 'Usuario',
+    emailUserCreated: bodyData.emailUserCreated || req.body.emailUserCreated || 'user@huellassalud.com',
+    roleUserCreated: bodyData.roleUserCreated || req.body.roleUserCreated || 'CLIENTE'
   };
   seedData.announcements.push(newAnn);
   res.status(201).json({ status: 'success', data: newAnn });
@@ -52,7 +52,7 @@ router.put('/announcement/:id', (req, res) => {
 });
 
 router.delete('/announcement/:id', (req, res) => {
-  const idx = seedData.announcements.findIndex(a => a.idAnnouncement == req.params.id);
+  const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
   if (idx === -1) return res.status(404).json({ message: 'Anuncio no encontrado' });
   const deleted = seedData.announcements.splice(idx, 1);
   res.json({ message: 'Anuncio eliminado exitosamente', data: deleted[0] });
