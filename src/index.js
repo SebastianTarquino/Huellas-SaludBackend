@@ -1,3 +1,4 @@
+
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -24,14 +25,18 @@ const swaggerDocument = {
   info: {
     title: 'Huellas y Salud Client API',
     version: '1.0.0',
-    description: 'API REST oficial para la aplicación móvil Huellas y Salud'
+    description: 'API REST oficial completa (CRUD) para la aplicación móvil Huellas y Salud'
   },
-  servers: [{ url: 'http://localhost:' + PORT }],
+  servers: [
+    { url: 'http://localhost:' + PORT, description: 'Servidor Local' },
+    { url: 'https://huellas-saludbackend.onrender.com', description: 'Servidor de Producción (Render)' }
+  ],
   paths: {
+    // AUTH
     '/internal/user/login': {
       post: {
         tags: ['Autenticación'],
-        summary: 'Iniciar Sesión de Usuario',
+        summary: 'POST: Iniciar Sesión (Login)',
         requestBody: {
           required: true,
           content: {
@@ -51,61 +56,197 @@ const swaggerDocument = {
             }
           }
         },
-        responses: {
-          '200': { description: 'Login exitoso con Token JWT' },
-          '401': { description: 'Credenciales inválidas' }
-        }
+        responses: { '200': { description: 'Login exitoso con Token JWT' }, '401': { description: 'Credenciales inválidas' } }
       }
     },
+    // USERS
     '/internal/user/list-users': {
+      get: { tags: ['Usuarios'], summary: 'GET: Listar todos los Usuarios', responses: { '200': { description: 'Lista de usuarios' } } }
+    },
+    '/internal/user/{id}': {
       get: {
         tags: ['Usuarios'],
-        summary: 'Listar todos los Usuarios',
-        responses: { '200': { description: 'Lista de usuarios registrados' } }
+        summary: 'GET: Obtener Usuario por ID o Documento',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Detalles del usuario' }, '404': { description: 'No encontrado' } }
+      },
+      put: {
+        tags: ['Usuarios'],
+        summary: 'PUT: Actualizar Usuario',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: {
+          content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, lastName: { type: 'string' }, role: { type: 'string' } } } } }
+        },
+        responses: { '200': { description: 'Usuario actualizado' } }
+      },
+      delete: {
+        tags: ['Usuarios'],
+        summary: 'DELETE: Eliminar Usuario',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Usuario eliminado' } }
       }
     },
-    '/internal/pet/list-pets': {
-      get: {
-        tags: ['Mascotas'],
-        summary: 'Listar Mascotas e Historial Médico',
-        responses: { '200': { description: 'Lista de mascotas' } }
+    '/internal/user/create': {
+      post: {
+        tags: ['Usuarios'],
+        summary: 'POST: Crear Nuevo Usuario',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  documentNumber: { type: 'string', example: '555666777' },
+                  email: { type: 'string', example: 'nuevo@correo.com' },
+                  name: { type: 'string', example: 'Carlos' },
+                  lastName: { type: 'string', example: 'Mendoza' },
+                  role: { type: 'string', example: 'CLIENTE' }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Usuario creado' } }
       }
+    },
+    // PETS
+    '/internal/pet/list-pets': {
+      get: { tags: ['Mascotas'], summary: 'GET: Listar Mascotas', responses: { '200': { description: 'Lista de mascotas' } } }
     },
     '/internal/pet/{id}': {
       get: {
         tags: ['Mascotas'],
-        summary: 'Detalle e Historial Médico de una Mascota',
+        summary: 'GET: Detalle e Historial Médico de Mascota',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        responses: { '200': { description: 'Información detallada de la mascota' } }
+        responses: { '200': { description: 'Detalle de mascota e historial' } }
+      },
+      put: {
+        tags: ['Mascotas'],
+        summary: 'PUT: Actualizar Datos de Mascota',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' }, age: { type: 'integer' } } } } } },
+        responses: { '200': { description: 'Mascota actualizada' } }
+      },
+      delete: {
+        tags: ['Mascotas'],
+        summary: 'DELETE: Eliminar Mascota',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Mascota eliminada' } }
       }
     },
+    '/internal/pet/create': {
+      post: {
+        tags: ['Mascotas'],
+        summary: 'POST: Registrar Nueva Mascota',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string', example: 'Rocky' }, species: { type: 'string', example: 'Perro' }, sex: { type: 'string', example: 'Macho' }, age: { type: 'integer', example: 3 } }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Mascota registrada' } }
+      }
+    },
+    // PRODUCTS
     '/internal/product/list-products': {
+      get: { tags: ['Productos'], summary: 'GET: Listar Productos', responses: { '200': { description: 'Lista de productos' } } }
+    },
+    '/internal/product/{id}': {
       get: {
         tags: ['Productos'],
-        summary: 'Listar Productos y Medicamentos',
-        responses: { '200': { description: 'Catálogo de productos' } }
+        summary: 'GET: Detalle de Producto por ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Detalles del producto' } }
+      },
+      put: {
+        tags: ['Productos'],
+        summary: 'PUT: Actualizar Producto',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { price: { type: 'number' }, description: { type: 'string' } } } } } },
+        responses: { '200': { description: 'Producto actualizado' } }
+      },
+      delete: {
+        tags: ['Productos'],
+        summary: 'DELETE: Eliminar Producto',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Producto eliminado' } }
       }
     },
+    '/internal/product/create': {
+      post: {
+        tags: ['Productos'],
+        summary: 'POST: Crear Nuevo Producto',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Shampoo Canino Antiséptico' },
+                  category: { type: 'string', example: 'Higiene' },
+                  animalType: { type: 'string', example: 'Perro' },
+                  price: { type: 'number', example: 35000 }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Producto creado' } }
+      }
+    },
+    // INVOICES
     '/internal/invoice/list-invoices': {
+      get: { tags: ['Facturas'], summary: 'GET: Listar Facturas', responses: { '200': { description: 'Lista de facturas' } } }
+    },
+    '/internal/invoice/{id}': {
       get: {
         tags: ['Facturas'],
-        summary: 'Listar Facturas Registradas',
-        responses: { '200': { description: 'Lista de facturas' } }
+        summary: 'GET: Detalle de Factura por ID',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Detalles de la factura' } }
+      },
+      put: {
+        tags: ['Facturas'],
+        summary: 'PUT: Actualizar Estado de Factura',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { estado: { type: 'string', example: 'ANULADA' } } } } } },
+        responses: { '200': { description: 'Factura actualizada' } }
       }
     },
-    '/internal/announcement/list-announcements': {
-      get: {
-        tags: ['Anuncios'],
-        summary: 'Listar Anuncios Públicos',
-        responses: { '200': { description: 'Lista de anuncios' } }
+    '/internal/invoice/create': {
+      post: {
+        tags: ['Facturas'],
+        summary: 'POST: Generar Nueva Factura',
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  cliente: { type: 'string', example: 'Armando Puentes' },
+                  mascota: { type: 'string', example: 'Max' },
+                  monto: { type: 'number', example: 150000 }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Factura creada' } }
       }
+    },
+    // ANNOUNCEMENTS
+    '/internal/announcement/list-announcements': {
+      get: { tags: ['Anuncios'], summary: 'GET: Listar Anuncios', responses: { '200': { description: 'Lista de anuncios' } } }
     },
     '/internal/announcement/create': {
       post: {
         tags: ['Anuncios'],
-        summary: 'Crear un Nuevo Anuncio',
+        summary: 'POST: Crear Anuncio',
         requestBody: {
-          required: true,
           content: {
             'application/json': {
               schema: {
@@ -113,23 +254,36 @@ const swaggerDocument = {
                 properties: {
                   data: {
                     type: 'object',
-                    properties: {
-                      description: { type: 'string', example: 'Jornada de vacunación canina' },
-                      cellPhone: { type: 'string', example: '3001234567' }
-                    }
+                    properties: { description: { type: 'string', example: 'Jornada de Adopción' }, cellPhone: { type: 'string', example: '3009998877' } }
                   }
                 }
               }
             }
           }
         },
-        responses: { '201': { description: 'Anuncio creado exitosamente' } }
+        responses: { '201': { description: 'Anuncio creado' } }
+      }
+    },
+    '/internal/announcement/{id}': {
+      put: {
+        tags: ['Anuncios'],
+        summary: 'PUT: Actualizar Anuncio',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { description: { type: 'string' } } } } } },
+        responses: { '200': { description: 'Anuncio actualizado' } }
+      },
+      delete: {
+        tags: ['Anuncios'],
+        summary: 'DELETE: Eliminar Anuncio',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Anuncio eliminado' } }
       }
     }
   }
 };
 
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use('/swagger-ui', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get('/', (req, res) => {
   res.json({
