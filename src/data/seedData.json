@@ -17,6 +17,15 @@
       "lastName": "Gómez",
       "role": "VETERINARIO",
       "password": "password123"
+    },
+    {
+      "id": 3,
+      "documentNumber": "1022934823",
+      "email": "tarquinosebas@gmail.com",
+      "name": "Sebastian",
+      "lastName": "Tarquino",
+      "role": "CLIENTE",
+      "password": "password123"
     }
   ],
   "pets": [
