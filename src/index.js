@@ -1,4 +1,4 @@
-﻿require('dotenv').config();
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -26,7 +26,107 @@ const swaggerDocument = {
     version: '1.0.0',
     description: 'API REST oficial para la aplicación móvil Huellas y Salud'
   },
-  servers: [{ url: 'http://localhost:' + PORT }]
+  servers: [{ url: 'http://localhost:' + PORT }],
+  paths: {
+    '/internal/user/login': {
+      post: {
+        tags: ['Autenticación'],
+        summary: 'Iniciar Sesión de Usuario',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  data: {
+                    type: 'object',
+                    properties: {
+                      emailOrDoc: { type: 'string', example: '123456789' },
+                      password: { type: 'string', example: 'password123' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: {
+          '200': { description: 'Login exitoso con Token JWT' },
+          '401': { description: 'Credenciales inválidas' }
+        }
+      }
+    },
+    '/internal/user/list-users': {
+      get: {
+        tags: ['Usuarios'],
+        summary: 'Listar todos los Usuarios',
+        responses: { '200': { description: 'Lista de usuarios registrados' } }
+      }
+    },
+    '/internal/pet/list-pets': {
+      get: {
+        tags: ['Mascotas'],
+        summary: 'Listar Mascotas e Historial Médico',
+        responses: { '200': { description: 'Lista de mascotas' } }
+      }
+    },
+    '/internal/pet/{id}': {
+      get: {
+        tags: ['Mascotas'],
+        summary: 'Detalle e Historial Médico de una Mascota',
+        parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+        responses: { '200': { description: 'Información detallada de la mascota' } }
+      }
+    },
+    '/internal/product/list-products': {
+      get: {
+        tags: ['Productos'],
+        summary: 'Listar Productos y Medicamentos',
+        responses: { '200': { description: 'Catálogo de productos' } }
+      }
+    },
+    '/internal/invoice/list-invoices': {
+      get: {
+        tags: ['Facturas'],
+        summary: 'Listar Facturas Registradas',
+        responses: { '200': { description: 'Lista de facturas' } }
+      }
+    },
+    '/internal/announcement/list-announcements': {
+      get: {
+        tags: ['Anuncios'],
+        summary: 'Listar Anuncios Públicos',
+        responses: { '200': { description: 'Lista de anuncios' } }
+      }
+    },
+    '/internal/announcement/create': {
+      post: {
+        tags: ['Anuncios'],
+        summary: 'Crear un Nuevo Anuncio',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  data: {
+                    type: 'object',
+                    properties: {
+                      description: { type: 'string', example: 'Jornada de vacunación canina' },
+                      cellPhone: { type: 'string', example: '3001234567' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: { '201': { description: 'Anuncio creado exitosamente' } }
+      }
+    }
+  }
 };
 
 app.use('/swagger', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
