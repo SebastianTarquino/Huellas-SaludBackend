@@ -40,9 +40,11 @@ router.post('/announcement/create', (req, res) => {
     emailUserCreated: bodyData.emailUserCreated || req.body.emailUserCreated || 'user@huellassalud.com',
     roleUserCreated: bodyData.roleUserCreated || req.body.roleUserCreated || 'CLIENTE',
     imagePath: null,
+    imageDataUrl: null,
     imageUrl: null
   };
   seedData.announcements.push(newAnn);
+  console.log('[Create Announcement] Created new announcement:', newAnn.idAnnouncement);
   res.status(201).json({ status: 'success', data: newAnn });
 });
 
@@ -60,25 +62,71 @@ router.delete('/announcement/:id', (req, res) => {
   res.json({ message: 'Anuncio eliminado exitosamente', data: deleted[0] });
 });
 
-// Guardar imagen subida
-router.post('/avatar-user/announcement/:id', upload.single('fileUpload'), (req, res) => {
-  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
-  if (ann && req.file) {
-    ann.imagePath = req.file.path;
+// Guardar imagen subida (Soporta /Announcement/:id y /announcement/:id)
+const handleUploadImage = (req, res) => {
+  const annId = req.params.id.toLowerCase();
+  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
+  console.log(`[Upload Image] Target announcement ID: ${req.params.id}, Found: ${!!ann}, File: ${!!req.file}`);
+
+  if (req.file) {
+    let base64Data = null;
+    try {
+      const fileBuffer = fs.readFileSync(req.file.path);
+      const mimeType = req.file.mimetype || 'image/png';
+      base64Data = `data:${mimeType};base64,${fileBuffer.toString('base64')}`;
+    } catch (err) {
+      console.error('[Upload Image] Error reading file buffer:', err);
+    }
+
+    if (ann) {
+      ann.imagePath = req.file.path;
+      if (base64Data) ann.imageDataUrl = base64Data;
+      console.log(`[Upload Image] Successfully attached image to ${ann.idAnnouncement}`);
+    }
+
+    return res.json({
+      status: 'success',
+      message: 'Imagen subida con éxito',
+      file: req.file,
+      imageUrl: `/internal/avatar-user/Announcement/${req.params.id}`
+    });
   }
-  res.json({ message: 'Imagen subida con éxito', file: req.file });
-});
+
+  res.status(400).json({ status: 'error', message: 'No se recibió ningún archivo' });
+};
+
+router.post('/avatar-user/announcement/:id', upload.single('fileUpload'), handleUploadImage);
+router.post('/avatar-user/Announcement/:id', upload.single('fileUpload'), handleUploadImage);
 
 // Servir la imagen del anuncio (Soporta /Announcement/:id y /announcement/:id)
 const handleGetAnnouncementImage = (req, res) => {
-  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
+  const annId = req.params.id.toLowerCase();
+  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
+
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+  // 1. Si el anuncio tiene imagen en Base64 en memoria (súper confiable)
+  if (ann && ann.imageDataUrl) {
+    const matches = ann.imageDataUrl.match(/^data:(.+);base64,(.+)$/);
+    if (matches) {
+      const contentType = matches[1];
+      const buffer = Buffer.from(matches[2], 'base64');
+      res.setHeader('Content-Type', contentType);
+      return res.send(buffer);
+    }
+  }
+
+  // 2. Si el anuncio tiene imagePath físico en disco
   if (ann && ann.imagePath && fs.existsSync(ann.imagePath)) {
     return res.sendFile(path.resolve(ann.imagePath));
   }
+
+  // 3. Si tiene una URL externa directa
   if (ann && ann.imageUrl) {
     return res.redirect(ann.imageUrl);
   }
-  // Imagen banner por defecto limpia de mascotas
+
+  // 4. Imagen banner por defecto limpia de mascotas
   res.redirect('https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80');
 };
 
