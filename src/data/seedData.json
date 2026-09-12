@@ -1,0 +1,166 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "documentNumber": "123456789",
+      "email": "admin@huellassalud.com",
+      "name": "Armando",
+      "lastName": "Puentes",
+      "role": "ADMIN",
+      "password": "password123"
+    },
+    {
+      "id": 2,
+      "documentNumber": "987654321",
+      "email": "valeria@huellassalud.com",
+      "name": "Valeria",
+      "lastName": "Gómez",
+      "role": "VETERINARIO",
+      "password": "password123"
+    }
+  ],
+  "pets": [
+    {
+      "idPet": 1,
+      "name": "Max",
+      "species": "Perro",
+      "sex": "Macho",
+      "age": 4,
+      "mediaFile": {
+        "fileName": "max.jpg",
+        "contentType": "image/jpeg",
+        "attachment": ""
+      },
+      "medicalHistory": [
+        {
+          "date": "2025-01-15T10:00:00.000Z",
+          "diagnostic": "Chequeo general preventivo - Excelente estado de salud",
+          "treatment": "Desparasitación oral preventiva con Simparica Trio",
+          "surgeries": [
+            "Sin cirugías"
+          ],
+          "vaccines": [
+            {
+              "name": "Rabia"
+            },
+            {
+              "name": "Quíntuple Canina"
+            }
+          ]
+        },
+        {
+          "date": "2024-08-10T14:30:00.000Z",
+          "diagnostic": "Leve dermatitis alérgica en patas delanteras",
+          "treatment": "Crema tópica antiséptica + Champú medicado 2 veces por semana",
+          "surgeries": [
+            "Sin cirugías"
+          ],
+          "vaccines": [
+            {
+              "name": "Parvovirus"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "idPet": 2,
+      "name": "Luna",
+      "species": "Gato",
+      "sex": "Hembra",
+      "age": 2,
+      "mediaFile": {
+        "fileName": "luna.jpg",
+        "contentType": "image/jpeg",
+        "attachment": ""
+      },
+      "medicalHistory": [
+        {
+          "date": "2025-02-01T11:00:00.000Z",
+          "diagnostic": "Vacunación anual y control de peso",
+          "treatment": "Multivitamínico felino por 15 días",
+          "surgeries": [
+            "Esterilización realizada en 2023"
+          ],
+          "vaccines": [
+            {
+              "name": "Triple Felina"
+            },
+            {
+              "name": "Leucemia Felina"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "products": [
+    {
+      "idProduct": 1,
+      "name": "Pro Plan Adulto Razas Medianas 3kg",
+      "category": "Alimento",
+      "animalType": "Perro",
+      "description": "Alimento completo y balanceado para perros adultos de raza mediana con carne de pollo real.",
+      "price": 85000,
+      "mediaFile": null
+    },
+    {
+      "idProduct": 2,
+      "name": "Juguete Kong Classic Medium",
+      "category": "Juguetes",
+      "animalType": "Perro",
+      "description": "Juguete de caucho súper duradero para rellenar con premios y estimular a tu mascota.",
+      "price": 45000,
+      "mediaFile": null
+    },
+    {
+      "idProduct": 3,
+      "name": "Bravecto Antipulgas Canino 10-20kg",
+      "category": "Medicinas",
+      "animalType": "Perro",
+      "description": "Comprimido masticable para protección de pulgas y garrapatas durante 12 semanas.",
+      "price": 120000,
+      "mediaFile": null
+    }
+  ],
+  "invoices": [
+    {
+      "idInvoice": "F-146",
+      "numero": 146,
+      "idClient": "123456789",
+      "cliente": "Armando Puentes",
+      "mascota": "Max",
+      "fecha": "15/01/2025",
+      "monto": 689000,
+      "estado": "Pagada",
+      "items": [
+        {
+          "descripcion": "Consulta veterinaria general",
+          "cantidad": 1,
+          "precio": 530000
+        },
+        {
+          "descripcion": "Bravecto Antipulgas Canino",
+          "cantidad": 1,
+          "precio": 120000
+        },
+        {
+          "descripcion": "Pro Plan Adulto Razas Medianas 3kg",
+          "cantidad": 1,
+          "precio": 85000
+        }
+      ]
+    }
+  ],
+  "announcements": [
+    {
+      "idAnnouncement": "ann-1",
+      "description": "¡Gran Jornada de Vacunación este Fin de Semana! Descuentos del 20% en vacunas para perros y gatos.",
+      "cellPhone": "3001234567",
+      "status": true,
+      "nameUserCreated": "Dra. Valeria Gómez",
+      "emailUserCreated": "valeria@huellassalud.com",
+      "roleUserCreated": "VETERINARIO"
+    }
+  ]
+}
