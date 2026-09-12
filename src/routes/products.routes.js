@@ -31,8 +31,22 @@ router.post('/product/create', (req, res) => {
 router.put('/product/:id', (req, res) => {
   const idx = seedData.products.findIndex(p => p.idProduct == req.params.id);
   if (idx === -1) return res.status(404).json({ message: 'Producto no encontrado' });
-  seedData.products[idx] = { ...seedData.products[idx], ...req.body };
-  res.json({ message: 'Producto actualizado exitosamente', data: seedData.products[idx] });
+  
+  // Extraer body limpio incluso si el usuario envio envoltorio data o message
+  const bodyData = req.body.data && typeof req.body.data === 'object' ? req.body.data : req.body;
+  
+  const updatedProduct = {
+    idProduct: Number(req.params.id),
+    name: bodyData.name ?? seedData.products[idx].name,
+    category: bodyData.category ?? seedData.products[idx].category,
+    animalType: bodyData.animalType ?? seedData.products[idx].animalType,
+    description: bodyData.description ?? seedData.products[idx].description,
+    price: bodyData.price ?? seedData.products[idx].price,
+    mediaFile: bodyData.mediaFile ?? seedData.products[idx].mediaFile
+  };
+
+  seedData.products[idx] = updatedProduct;
+  res.json({ message: 'Producto actualizado exitosamente', data: updatedProduct });
 });
 
 router.delete('/product/:id', (req, res) => {

@@ -97,13 +97,13 @@
   "products": [
     {
       "idProduct": 1,
-      "name": "Pro Plan Adulto Razas Medianas 3kg",
+      "name": "Agility Gold Pequeños Adultos",
       "category": "Alimento",
       "animalType": "Perro",
-      "description": "Alimento completo y balanceado para perros adultos de raza mediana con carne de pollo real.",
-      "price": 85000,
+      "description": "Alimento completo y balanceado con pollo real de alta calidad.",
+      "price": 42000,
       "mediaFile": {
-        "fileName": "proplan.jpg",
+        "fileName": "agility.jpg",
         "contentType": "image/jpeg",
         "attachment": "https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=600&auto=format&fit=crop&q=80"
       }
