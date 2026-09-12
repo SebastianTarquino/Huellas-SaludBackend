@@ -164,10 +164,33 @@ const swaggerDocument = {
       },
       put: {
         tags: ['Productos'],
-        summary: 'PUT: Actualizar Producto',
+        summary: 'PUT: Actualizar Producto con Imagen o Datos',
         parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-        requestBody: { content: { 'application/json': { schema: { type: 'object', properties: { price: { type: 'number' }, description: { type: 'string' } } } } } },
-        responses: { '200': { description: 'Producto actualizado' } }
+        requestBody: {
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', example: 'Pro Plan Adulto Razas Medianas 3kg' },
+                  category: { type: 'string', example: 'Alimento' },
+                  animalType: { type: 'string', example: 'Perro' },
+                  price: { type: 'number', example: 85000 },
+                  description: { type: 'string', example: 'Alimento completo y balanceado con pollo' },
+                  mediaFile: {
+                    type: 'object',
+                    properties: {
+                      fileName: { type: 'string', example: 'producto.jpg' },
+                      contentType: { type: 'string', example: 'image/jpeg' },
+                      attachment: { type: 'string', example: 'https://images.unsplash.com/photo-1589924691995-400dc9ecc119?w=600&auto=format&fit=crop&q=80' }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        responses: { '200': { description: 'Producto actualizado exitosamente' } }
       },
       delete: {
         tags: ['Productos'],
