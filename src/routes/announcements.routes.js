@@ -19,10 +19,35 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+// Auto-migración segura para tabla announcements en PostgreSQL
+db.query(`
+  CREATE TABLE IF NOT EXISTS announcements (
+    id VARCHAR(100) PRIMARY KEY,
+    description TEXT NOT NULL,
+    cell_phone VARCHAR(20),
+    status BOOLEAN DEFAULT TRUE,
+    name_user_created VARCHAR(100),
+    email_user_created VARCHAR(100),
+    role_user_created VARCHAR(30),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+  ALTER TABLE announcements ADD COLUMN IF NOT EXISTS name_user_created VARCHAR(100);
+  ALTER TABLE announcements ADD COLUMN IF NOT EXISTS email_user_created VARCHAR(100);
+  ALTER TABLE announcements ADD COLUMN IF NOT EXISTS role_user_created VARCHAR(30);
+  ALTER TABLE announcements ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+`).catch(err => console.error('[Announcements Schema Init Error]:', err.message));
+
 // 1. OBTENER ANUNCIOS (Consulta a PostgreSQL con respaldo en seedData)
 router.get('/announcement/list-announcements', async (req, res) => {
   try {
-    const result = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+    let result;
+    try {
+      result = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+    } catch (orderErr) {
+      console.warn('[Get Announcements DB Order Warning]:', orderErr.message);
+      result = await db.query('SELECT * FROM announcements');
+    }
+
     if (result.rows && result.rows.length > 0) {
       const formatted = result.rows.map(ann => ({
         data: {
