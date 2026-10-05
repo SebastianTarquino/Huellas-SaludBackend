@@ -59,7 +59,7 @@ router.get('/announcement/list-announcements', async (req, res) => {
   res.json(formattedSeed);
 });
 
-// 2. CREAR ANUNCIO (Inserta en PostgreSQL)
+// 2. CREAR ANUNCIO (Inserta en PostgreSQL guardando el nombre del usuario)
 router.post('/announcement/create', async (req, res) => {
   const bodyData = req.body.data || req.body;
   const newAnn = {
@@ -74,17 +74,28 @@ router.post('/announcement/create', async (req, res) => {
   };
 
   try {
-    // Guardar en PostgreSQL
+    // Guardar en PostgreSQL incluyendo name_user_created, email_user_created y role_user_created
     await db.query(
-      `INSERT INTO announcements (id, description, cell_phone, status) 
-       VALUES ($1, $2, $3, $4)
+      `INSERT INTO announcements (id, description, cell_phone, status, name_user_created, email_user_created, role_user_created) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (id) DO UPDATE SET 
          description = EXCLUDED.description, 
-         cell_phone = EXCLUDED.cell_phone`,
-      [newAnn.idAnnouncement, newAnn.description, newAnn.cellPhone, newAnn.status]
+         cell_phone = EXCLUDED.cell_phone,
+         name_user_created = EXCLUDED.name_user_created,
+         email_user_created = EXCLUDED.email_user_created,
+         role_user_created = EXCLUDED.role_user_created`,
+      [
+        newAnn.idAnnouncement, 
+        newAnn.description, 
+        newAnn.cellPhone, 
+        newAnn.status,
+        newAnn.nameUserCreated,
+        newAnn.emailUserCreated,
+        newAnn.roleUserCreated
+      ]
     );
 
-    console.log('[Create Announcement DB] Guardado en PostgreSQL:', newAnn.idAnnouncement);
+    console.log('[Create Announcement DB] Guardado en PostgreSQL con autor:', newAnn.nameUserCreated);
   } catch (err) {
     console.error('[Create Announcement DB Error]:', err.message);
   }
