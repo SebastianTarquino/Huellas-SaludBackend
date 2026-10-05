@@ -1,4 +1,4 @@
-﻿-- Esquema SQL PostgreSQL para Huellas y Salud
+-- Esquema SQL PostgreSQL para Huellas y Salud
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     document_number VARCHAR(20) UNIQUE NOT NULL,
@@ -58,6 +58,7 @@ CREATE TABLE IF NOT EXISTS announcements (
     name_user_created VARCHAR(100),
     email_user_created VARCHAR(100),
     role_user_created VARCHAR(30),
+    image_data_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

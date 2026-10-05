@@ -29,11 +29,13 @@ db.query(`
     name_user_created VARCHAR(100),
     email_user_created VARCHAR(100),
     role_user_created VARCHAR(30),
+    image_data_url TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
   ALTER TABLE announcements ADD COLUMN IF NOT EXISTS name_user_created VARCHAR(100);
   ALTER TABLE announcements ADD COLUMN IF NOT EXISTS email_user_created VARCHAR(100);
   ALTER TABLE announcements ADD COLUMN IF NOT EXISTS role_user_created VARCHAR(30);
+  ALTER TABLE announcements ADD COLUMN IF NOT EXISTS image_data_url TEXT;
   ALTER TABLE announcements ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 `).catch(err => console.error('[Announcements Schema Init Error]:', err.message));
 
@@ -84,7 +86,7 @@ router.get('/announcement/list-announcements', async (req, res) => {
   res.json(formattedSeed);
 });
 
-// 2. CREAR ANUNCIO (Inserta en PostgreSQL guardando el nombre del usuario)
+// 2. CREAR ANUNCIO (Inserta en PostgreSQL guardando el nombre del usuario e imagen base64)
 router.post('/announcement/create', async (req, res) => {
   const bodyData = req.body.data || req.body;
   const newAnn = {
@@ -99,16 +101,16 @@ router.post('/announcement/create', async (req, res) => {
   };
 
   try {
-    // Guardar en PostgreSQL incluyendo name_user_created, email_user_created y role_user_created
     await db.query(
-      `INSERT INTO announcements (id, description, cell_phone, status, name_user_created, email_user_created, role_user_created) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO announcements (id, description, cell_phone, status, name_user_created, email_user_created, role_user_created, image_data_url) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        ON CONFLICT (id) DO UPDATE SET 
          description = EXCLUDED.description, 
          cell_phone = EXCLUDED.cell_phone,
          name_user_created = EXCLUDED.name_user_created,
          email_user_created = EXCLUDED.email_user_created,
-         role_user_created = EXCLUDED.role_user_created`,
+         role_user_created = EXCLUDED.role_user_created,
+         image_data_url = EXCLUDED.image_data_url`,
       [
         newAnn.idAnnouncement, 
         newAnn.description, 
@@ -116,7 +118,8 @@ router.post('/announcement/create', async (req, res) => {
         newAnn.status,
         newAnn.nameUserCreated,
         newAnn.emailUserCreated,
-        newAnn.roleUserCreated
+        newAnn.roleUserCreated,
+        newAnn.imageDataUrl
       ]
     );
 
@@ -125,7 +128,6 @@ router.post('/announcement/create', async (req, res) => {
     console.error('[Create Announcement DB Error]:', err.message);
   }
 
-  // Guardar en memoria para mantener sincronizado
   seedData.announcements.push(newAnn);
   res.status(201).json({ status: 'success', data: newAnn });
 });
@@ -176,8 +178,8 @@ router.delete('/announcement/:id', async (req, res) => {
   res.json({ message: 'Anuncio eliminado exitosamente' });
 });
 
-// Guardar imagen subida (Multipart/form-data)
-const handleUploadImage = (req, res) => {
+// Guardar imagen subida (Multipart/form-data) en PostgreSQL y memoria
+const handleUploadImage = async (req, res) => {
   const annId = req.params.id.toLowerCase();
   const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
 
@@ -197,6 +199,18 @@ const handleUploadImage = (req, res) => {
       ann.updatedAt = Date.now();
     }
 
+    if (base64Data) {
+      try {
+        await db.query(
+          `UPDATE announcements SET image_data_url = $1 WHERE LOWER(id) = LOWER($2)`,
+          [base64Data, annId]
+        );
+        console.log('[Upload Image DB] Imagen guardada en PostgreSQL para anuncio:', annId);
+      } catch (err) {
+        console.error('[Upload Image DB Error]:', err.message);
+      }
+    }
+
     return res.json({
       status: 'success',
       message: 'Imagen subida con éxito',
@@ -210,12 +224,29 @@ const handleUploadImage = (req, res) => {
 router.post('/avatar-user/announcement/:id', upload.single('fileUpload'), handleUploadImage);
 router.post('/avatar-user/Announcement/:id', upload.single('fileUpload'), handleUploadImage);
 
-// Servir imagen del anuncio
-const handleGetAnnouncementImage = (req, res) => {
+// Servir imagen del anuncio (Consulta PostgreSQL primero, luego seedData, luego placeholder por defecto)
+const handleGetAnnouncementImage = async (req, res) => {
   const annId = req.params.id.toLowerCase();
-  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
 
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+
+  try {
+    const result = await db.query('SELECT image_data_url FROM announcements WHERE LOWER(id) = LOWER($1)', [annId]);
+    if (result.rows && result.rows.length > 0 && result.rows[0].image_data_url) {
+      const imageDataUrl = result.rows[0].image_data_url;
+      const matches = imageDataUrl.match(/^data:(.+);base64,(.+)$/);
+      if (matches) {
+        const contentType = matches[1];
+        const buffer = Buffer.from(matches[2], 'base64');
+        res.setHeader('Content-Type', contentType);
+        return res.send(buffer);
+      }
+    }
+  } catch (err) {
+    console.error('[Get Image DB Error]:', err.message);
+  }
+
+  const ann = seedData.announcements.find(a => a.idAnnouncement.toLowerCase() == annId);
 
   if (ann && ann.imageDataUrl) {
     const matches = ann.imageDataUrl.match(/^data:(.+);base64,(.+)$/);
