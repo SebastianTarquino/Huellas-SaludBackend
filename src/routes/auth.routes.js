@@ -17,7 +17,7 @@ router.post('/user/login', async (req, res) => {
   try {
     // 1. Consultar usuario en PostgreSQL en Render
     const query = `
-      SELECT id, document_number, email, name, last_name, role, password_hash 
+      SELECT id, document_number, email, name, last_name, role, password_hash, avatar_base64 
       FROM users 
       WHERE LOWER(email) = LOWER($1) OR document_number = $1
     `;
@@ -43,6 +43,7 @@ router.post('/user/login', async (req, res) => {
             name: dbUser.name,
             lastName: dbUser.last_name,
             role: dbUser.role,
+            avatarBase64: dbUser.avatar_base64 || null,
             token
           }
         });
