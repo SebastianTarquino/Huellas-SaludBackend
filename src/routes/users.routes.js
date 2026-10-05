@@ -39,7 +39,7 @@ router.get('/user/:id', async (req, res) => {
     const query = `
       SELECT id, document_number, email, name, last_name, role, avatar_base64 
       FROM users 
-      WHERE id::text = $1 OR document_number = $1 OR LOWER(email) = LOWER($1)
+      WHERE id::text = $1 OR document_number = $1 OR LOWER(email) = LOWER($1) OR LOWER(name) = LOWER($1) OR LOWER(CONCAT(name, ' ', last_name)) = LOWER($1)
     `;
     const { rows } = await pool.query(query, [id.toString().trim()]);
 
@@ -132,7 +132,7 @@ router.put('/user/:id/avatar', async (req, res) => {
     const updateQuery = `
       UPDATE users 
       SET avatar_base64 = $1
-      WHERE id::text = $2 OR document_number = $2 OR LOWER(email) = LOWER($2)
+      WHERE id::text = $2 OR document_number = $2 OR LOWER(email) = LOWER($2) OR LOWER(name) = LOWER($2) OR LOWER(CONCAT(name, ' ', last_name)) = LOWER($2)
       RETURNING id, document_number, email, name, last_name, role, avatar_base64
     `;
     const result = await pool.query(updateQuery, [avatarBase64, id.toString().trim()]);
