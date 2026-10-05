@@ -3,6 +3,8 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const seedData = require('../data/seedData');
+const db = require('../config/db'); // 👈 Importamos la conexión a PostgreSQL
+
 const router = express.Router();
 
 // Crear directorio uploads si no existe
@@ -17,8 +19,36 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.get('/announcement/list-announcements', (req, res) => {
-  const formatted = seedData.announcements.map(ann => ({
+// 1. OBTENER ANUNCIOS (Consulta a PostgreSQL con respaldo en seedData)
+router.get('/announcement/list-announcements', async (req, res) => {
+  try {
+    const result = await db.query('SELECT * FROM announcements ORDER BY created_at DESC');
+    if (result.rows && result.rows.length > 0) {
+      const formatted = result.rows.map(ann => ({
+        data: {
+          idAnnouncement: ann.id,
+          description: ann.description,
+          cellPhone: ann.cell_phone,
+          status: ann.status,
+          nameUserCreated: ann.name_user_created || 'Usuario',
+          emailUserCreated: ann.email_user_created || 'user@huellassalud.com',
+          roleUserCreated: ann.role_user_created || 'CLIENTE',
+          imageDataUrl: ann.image_data_url || null
+        },
+        meta: {
+          nameUserCreated: ann.name_user_created || 'Usuario',
+          emailUserCreated: ann.email_user_created || 'user@huellassalud.com',
+          roleUserCreated: ann.role_user_created || 'CLIENTE'
+        }
+      }));
+      return res.json(formatted);
+    }
+  } catch (err) {
+    console.error('[Get Announcements DB Error]:', err.message);
+  }
+
+  // Fallback a seedData si la BD aún no tiene registros o falla la red
+  const formattedSeed = seedData.announcements.map(ann => ({
     data: ann,
     meta: {
       nameUserCreated: ann.nameUserCreated || 'Usuario',
@@ -26,52 +56,88 @@ router.get('/announcement/list-announcements', (req, res) => {
       roleUserCreated: ann.roleUserCreated || 'CLIENTE'
     }
   }));
-  res.json(formatted);
+  res.json(formattedSeed);
 });
 
-router.post('/announcement/create', (req, res) => {
+// 2. CREAR ANUNCIO (Inserta en PostgreSQL)
+router.post('/announcement/create', async (req, res) => {
   const bodyData = req.body.data || req.body;
   const newAnn = {
-    idAnnouncement: 'ann-' + Date.now(),
+    idAnnouncement: bodyData.idAnnouncement || ('ann-' + Date.now()),
     description: bodyData.description || 'Sin descripción',
     cellPhone: bodyData.cellPhone || '',
     status: true,
     nameUserCreated: bodyData.nameUserCreated || req.body.nameUserCreated || 'Usuario',
     emailUserCreated: bodyData.emailUserCreated || req.body.emailUserCreated || 'user@huellassalud.com',
     roleUserCreated: bodyData.roleUserCreated || req.body.roleUserCreated || 'CLIENTE',
-    imagePath: null,
-    imageDataUrl: bodyData.imageBase64 || bodyData.imageDataUrl || null,
-    imageUrl: null,
-    updatedAt: Date.now()
+    imageDataUrl: bodyData.imageBase64 || bodyData.imageDataUrl || null
   };
+
+  try {
+    // Guardar en PostgreSQL
+    await db.query(
+      `INSERT INTO announcements (id, description, cell_phone, status) 
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET 
+         description = EXCLUDED.description, 
+         cell_phone = EXCLUDED.cell_phone`,
+      [newAnn.idAnnouncement, newAnn.description, newAnn.cellPhone, newAnn.status]
+    );
+
+    console.log('[Create Announcement DB] Guardado en PostgreSQL:', newAnn.idAnnouncement);
+  } catch (err) {
+    console.error('[Create Announcement DB Error]:', err.message);
+  }
+
+  // Guardar en memoria para mantener sincronizado
   seedData.announcements.push(newAnn);
-  console.log('[Create Announcement] Created:', newAnn.idAnnouncement, 'Has Image:', !!newAnn.imageDataUrl);
   res.status(201).json({ status: 'success', data: newAnn });
 });
 
-router.put('/announcement/:id', (req, res) => {
-  const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
-  if (idx === -1) return res.status(404).json({ message: 'Anuncio no encontrado' });
-  
+// 3. ACTUALIZAR ANUNCIO (En PostgreSQL)
+router.put('/announcement/:id', async (req, res) => {
+  const id = req.params.id;
   const bodyData = req.body.data || req.body;
-  
-  seedData.announcements[idx] = { 
-    ...seedData.announcements[idx], 
-    ...bodyData,
-    updatedAt: Date.now()
-  };
-  if (bodyData.imageBase64) {
-    seedData.announcements[idx].imageDataUrl = bodyData.imageBase64;
+
+  try {
+    await db.query(
+      `UPDATE announcements 
+       SET description = COALESCE($1, description), cell_phone = COALESCE($2, cell_phone) 
+       WHERE LOWER(id) = LOWER($3)`,
+      [bodyData.description, bodyData.cellPhone, id]
+    );
+  } catch (err) {
+    console.error('[Update Announcement DB Error]:', err.message);
   }
-  
-  res.json({ message: 'Anuncio actualizado exitosamente', data: seedData.announcements[idx] });
+
+  const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == id.toLowerCase());
+  if (idx !== -1) {
+    seedData.announcements[idx] = { 
+      ...seedData.announcements[idx], 
+      ...bodyData,
+      updatedAt: Date.now()
+    };
+  }
+
+  res.json({ message: 'Anuncio actualizado exitosamente' });
 });
 
-router.delete('/announcement/:id', (req, res) => {
-  const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == req.params.id.toLowerCase());
-  if (idx === -1) return res.status(404).json({ message: 'Anuncio no encontrado' });
-  const deleted = seedData.announcements.splice(idx, 1);
-  res.json({ message: 'Anuncio eliminado exitosamente', data: deleted[0] });
+// 4. ELIMINAR ANUNCIO (En PostgreSQL)
+router.delete('/announcement/:id', async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    await db.query('DELETE FROM announcements WHERE LOWER(id) = LOWER($1)', [id]);
+  } catch (err) {
+    console.error('[Delete Announcement DB Error]:', err.message);
+  }
+
+  const idx = seedData.announcements.findIndex(a => a.idAnnouncement.toLowerCase() == id.toLowerCase());
+  if (idx !== -1) {
+    seedData.announcements.splice(idx, 1);
+  }
+
+  res.json({ message: 'Anuncio eliminado exitosamente' });
 });
 
 // Guardar imagen subida (Multipart/form-data)
@@ -115,7 +181,6 @@ const handleGetAnnouncementImage = (req, res) => {
 
   res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
 
-  // 1. Si el anuncio tiene imagen en Base64 en memoria
   if (ann && ann.imageDataUrl) {
     const matches = ann.imageDataUrl.match(/^data:(.+);base64,(.+)$/);
     if (matches) {
@@ -126,17 +191,14 @@ const handleGetAnnouncementImage = (req, res) => {
     }
   }
 
-  // 2. Si el anuncio tiene imagePath físico en disco
   if (ann && ann.imagePath && fs.existsSync(ann.imagePath)) {
     return res.sendFile(path.resolve(ann.imagePath));
   }
 
-  // 3. Si tiene una URL externa directa
   if (ann && ann.imageUrl) {
     return res.redirect(ann.imageUrl);
   }
 
-  // 4. Imagen banner por defecto limpia de mascotas
   res.redirect('https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=800&auto=format&fit=crop&q=80');
 };
 
