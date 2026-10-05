@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS announcements (
     description TEXT NOT NULL,
     cell_phone VARCHAR(20),
     status BOOLEAN DEFAULT TRUE,
+    name_user_created VARCHAR(100),
+    email_user_created VARCHAR(100),
+    role_user_created VARCHAR(30),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
 
