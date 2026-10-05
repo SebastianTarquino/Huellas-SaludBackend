@@ -51,9 +51,10 @@ CREATE TABLE IF NOT EXISTS invoices (
 );
 
 CREATE TABLE IF NOT EXISTS announcements (
-    id SERIAL PRIMARY KEY,
+    id VARCHAR(100) PRIMARY KEY,
     description TEXT NOT NULL,
     cell_phone VARCHAR(20),
     status BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
