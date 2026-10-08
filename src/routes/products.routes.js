@@ -2,7 +2,6 @@
 const pool = require('../config/db');
 const router = express.Router();
 
-// Helper para formatear respuesta de producto
 const formatProduct = (p) => ({
   data: {
     idProduct: p.id,
@@ -21,7 +20,7 @@ const formatProduct = (p) => ({
   }
 });
 
-// GET: Listar todos los productos desde la base de datos PostgreSQL
+// GET: Listar productos
 router.get('/product/list-products', async (req, res) => {
   try {
     const { rows } = await pool.query('SELECT * FROM products ORDER BY id ASC');
@@ -33,11 +32,11 @@ router.get('/product/list-products', async (req, res) => {
   }
 });
 
-// GET: Detalle de producto por ID
+// GET: Detalle por ID
 router.get('/product/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rows } = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+    const { rows } = await pool.query('SELECT * FROM products WHERE id::text = $1', [id.toString().trim()]);
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
@@ -78,7 +77,6 @@ const createProductHandler = async (req, res) => {
   }
 };
 
-// POST: Crear producto (soporta /product/create y /product/create-product)
 router.post('/product/create', createProductHandler);
 router.post('/product/create-product', createProductHandler);
 
@@ -88,7 +86,7 @@ router.put('/product/:id', async (req, res) => {
     const { id } = req.params;
     const bodyData = req.body.data || req.body;
 
-    const { rows: current } = await pool.query('SELECT * FROM products WHERE id = $1', [id]);
+    const { rows: current } = await pool.query('SELECT * FROM products WHERE id::text = $1', [id.toString().trim()]);
     if (current.length === 0) {
       return res.status(404).json({ message: 'Producto no encontrado' });
     }
@@ -108,7 +106,7 @@ router.put('/product/:id', async (req, res) => {
       WHERE id = $8
       RETURNING *
     `;
-    const { rows } = await pool.query(updateQuery, [name, category, animalType, description, price, stock, imageUrl, id]);
+    const { rows } = await pool.query(updateQuery, [name, category, animalType, description, price, stock, imageUrl, old.id]);
     const p = rows[0];
 
     res.json({
@@ -125,10 +123,13 @@ router.put('/product/:id', async (req, res) => {
 router.delete('/product/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { rows } = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [id]);
+    const { rows } = await pool.query('DELETE FROM products WHERE id::text = $1 RETURNING *', [id.toString().trim()]);
+    
+    // Si no existia en BD (o era un id simulado), responder 200 para removerlo del cliente
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.json({ message: 'Producto eliminado exitosamente', data: { id } });
     }
+    
     res.json({ message: 'Producto eliminado exitosamente', data: rows[0] });
   } catch (error) {
     console.error('Error al eliminar producto:', error);
